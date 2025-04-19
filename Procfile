@@ -1,1 +1,1 @@
-python reminder_bot.py
+start: python reminder_bot.py
