@@ -57,9 +57,14 @@ async def main():
 
     app.add_handler(CallbackQueryHandler(confirm_callback))
 
-    # Envoi immédiat pour test
-app.job_queue.run_once(send_reminder, 0)
+    # Démarre l'envoi du premier message à 22h
+    now = datetime.now()
+    target = datetime.combine(now.date(), datetime.min.time()) + timedelta(hours=22)
+    if now > target:
+        target += timedelta(days=1)
+    delay = (target - now).total_seconds()
 
+    app.job_queue.run_once(send_reminder, delay)
 
     # Reset tous les jours à 22h
     asyncio.create_task(reset_confirmation_daily(app))
