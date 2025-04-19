@@ -1,75 +1,42 @@
-import asyncio
-import os
-from datetime import datetime, timedelta
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CallbackQueryHandler,
-    CommandHandler,
-    ContextTypes,
-)
+import logging
+from telegram.ext import Updater, CommandHandler, CallbackContext, JobQueue
+from telegram import Update
 
-TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = int(os.getenv("CHAT_ID"))
+# Configure le logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-confirmed_today = False
+# Remplir avec ton token
+BOT_TOKEN = 'YOUR_BOT_TOKEN'
 
-async def send_reminder(context: ContextTypes.DEFAULT_TYPE):
-    global confirmed_today
-    if confirmed_today:
-        return
+# Remplir avec ton chat_id
+CHAT_ID = 'YOUR_CHAT_ID'
 
-    keyboard = [[InlineKeyboardButton("✅ Confirmé", callback_data="confirm")]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+def start(update: Update, context: CallbackContext) -> None:
+    """Envoie un message de démarrage au lancement du bot."""
+    update.message.reply_text('Bot lancé !')
 
-    await context.bot.send_message(
-        chat_id=CHAT_ID,
-        text="Coucou mon amour 💖\nN'oublie pas de prendre ton médicament 💊\nClique sur le bouton quand c’est fait ✨",
-        reply_markup=reply_markup
-    )
+def reminder_job(context: CallbackContext) -> None:
+    """Fonction appelée pour envoyer un message de rappel."""
+    context.bot.send_message(chat_id=CHAT_ID, text="N'oublie pas de prendre ton médicament ! 💊")
 
-    # Rappel dans 10 minutes si pas confirmé
-    context.job_queue.run_once(reminder_loop, 600)
+def main():
+    """Démarre le bot et configure le JobQueue."""
+    updater = Updater(token=BOT_TOKEN, use_context=True)
 
-async def reminder_loop(context: ContextTypes.DEFAULT_TYPE):
-    global confirmed_today
-    if not confirmed_today:
-        await send_reminder(context)
+    # Obtient le JobQueue depuis l'Updater
+    job_queue = updater.job_queue
 
-async def confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global confirmed_today
-    confirmed_today = True
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text("Bravo mon cœur 💖 Je suis fier de toi ✨")
+    # Planifie un job (exemple : dans 10 secondes)
+    job_queue.run_once(reminder_job, 10, context=CHAT_ID)
 
-async def reset_confirmation_daily(app):
-    while True:
-        now = datetime.now()
-        target = datetime.combine(now.date(), datetime.min.time()) + timedelta(days=1, hours=22)
-        wait_time = (target - now).total_seconds()
-        await asyncio.sleep(wait_time)
-        global confirmed_today
-        confirmed_today = False
-        app.job_queue.run_once(send_reminder, 0)
+    # Ajoute un handler pour la commande /start
+    updater.dispatcher.add_handler(CommandHandler("start", start))
 
-async def main():
-    app = ApplicationBuilder().token(TOKEN).build()
-
-    app.add_handler(CallbackQueryHandler(confirm_callback))
-
-    # Démarre l'envoi du premier message à 22h
-    now = datetime.now()
-    target = datetime.combine(now.date(), datetime.min.time()) + timedelta(hours=22)
-    if now > target:
-        target += timedelta(days=1)
-    delay = (target - now).total_seconds()
-
-    app.job_queue.run_once(send_reminder, delay)
-
-    # Reset tous les jours à 22h
-    asyncio.create_task(reset_confirmation_daily(app))
-
-    await app.run_polling()
+    # Démarre le bot
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
