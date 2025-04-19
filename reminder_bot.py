@@ -1,6 +1,6 @@
 import logging
-from telegram.ext import Updater, CommandHandler, CallbackContext, JobQueue
 from telegram import Update
+from telegram.ext import Updater, CommandHandler, CallbackContext, JobQueue
 
 # Configure le logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 # Remplir avec ton token
 BOT_TOKEN = 'YOUR_BOT_TOKEN'
-
 # Remplir avec ton chat_id
 CHAT_ID = 'YOUR_CHAT_ID'
 
