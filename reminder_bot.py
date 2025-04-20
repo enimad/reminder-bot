@@ -1,6 +1,6 @@
 import logging
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext, JobQueue
+from telegram.ext import Application, CommandHandler, CallbackContext
 
 # Configure le logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -12,30 +12,28 @@ BOT_TOKEN = 'YOUR_BOT_TOKEN'
 # Remplir avec ton chat_id
 CHAT_ID = 'YOUR_CHAT_ID'
 
-def start(update: Update, context: CallbackContext) -> None:
+async def start(update: Update, context: CallbackContext) -> None:
     """Envoie un message de démarrage au lancement du bot."""
-    update.message.reply_text('Bot lancé !')
+    await update.message.reply_text('Bot lancé !')
 
-def reminder_job(context: CallbackContext) -> None:
+async def reminder_job(context: CallbackContext) -> None:
     """Fonction appelée pour envoyer un message de rappel."""
-    context.bot.send_message(chat_id=CHAT_ID, text="N'oublie pas de prendre ton médicament ! 💊")
+    await context.bot.send_message(chat_id=CHAT_ID, text="N'oublie pas de prendre ton médicament ! 💊")
 
-def main():
+async def main() -> None:
     """Démarre le bot et configure le JobQueue."""
-    updater = Updater(token=BOT_TOKEN, use_context=True)
+    # Créer une instance de l'application
+    application = Application.builder().token(BOT_TOKEN).build()
 
-    # Obtient le JobQueue depuis l'Updater
-    job_queue = updater.job_queue
-
-    # Planifie un job (exemple : dans 10 secondes)
-    job_queue.run_once(reminder_job, 10, context=CHAT_ID)
+    # Planifie un job (par exemple, dans 10 secondes)
+    application.job_queue.run_once(reminder_job, 10, context=CHAT_ID)
 
     # Ajoute un handler pour la commande /start
-    updater.dispatcher.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("start", start))
 
     # Démarre le bot
-    updater.start_polling()
-    updater.idle()
+    await application.run_polling()
 
 if __name__ == '__main__':
-    main()
+    import asyncio
+    asyncio.run(main())
